@@ -1,0 +1,10 @@
+# 个人运行时数据 —— 不进仓库
+state.json
+.mpkg-cache/
+.mpkgtest/
+.pkgtest/
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db
+*.log
