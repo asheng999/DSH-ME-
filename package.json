@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-theme-wallpaper",
   "description": "主题与壁纸：macOS 观感主题 + 本地任意路径壁纸（静态图/动图/视频），壁纸暗化与面板半透明滑杆，失焦自动暂停；支持从 Wallpaper Engine 导出包(.mpkg)自动解出高清动态壁纸（专用导出文件夹 + 一键收桌面）",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "main": "lib/index.js",
