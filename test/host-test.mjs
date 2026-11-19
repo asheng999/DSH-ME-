@@ -11,6 +11,17 @@ import { join } from 'node:path'
 
 const TEST_STATE = join(tmpdir(), 'dsh-theme-wallpaper-test-state.json')
 process.env.THEME_WALLPAPER_STATE = TEST_STATE
+
+// These two temp dirs double as the "export folder" and the "desktop" that
+// WE drops .mpkg files onto, so they must exist before any route is exercised.
+const MPKG_TMP = join(tmpdir(), 'dsh-twp-mpkg-test')
+const COLLECT_SRC = join(tmpdir(), 'dsh-twp-collect-src')
+await mkdir(MPKG_TMP, { recursive: true })
+await mkdir(COLLECT_SRC, { recursive: true })
+// The collect route only moves .mpkg out of the desktop/downloads roots; point
+// it at the fixture dir so the test never touches the real Desktop.
+process.env.THEME_WALLPAPER_COLLECT_ROOTS = COLLECT_SRC
+
 const plugin = await import('../lib/index.js')
 
 const WE_VIDEO = 'D:/GAME/steam/steamapps/workshop/content/431960/2003005131/SSOA.mp4'
@@ -88,9 +99,10 @@ check('non-absolute → 400', r.status === 400, { status: r.status })
 r = await fetch(base + '/theme-wallpaper/file?path=' + encodeURIComponent('C:/Windows/notepad.exe'))
 check('bad ext → 400', r.status === 400, { status: r.status })
 
-// 7. GET file: missing file → 404
+// 6b. GET file: path outside every allowed root → 403 (never 404, which would
+// leak whether an out-of-root file exists)
 r = await fetch(base + '/theme-wallpaper/file?path=' + encodeURIComponent('C:/no/such/file.mp4'))
-check('missing file → 404', r.status === 404, { status: r.status })
+check('out-of-root path → 403', r.status === 403, { status: r.status })
 
 // 8. WE library scan: DEFAULT returns ONLY converted .mpkg entries (no low-res thumbnails)
 r = await fetch(base + '/theme-wallpaper/we-library')
@@ -116,8 +128,6 @@ check('we-dirs ok + primary detected', j.ok === true && typeof j.primary === 'st
 check('we-dirs workshop dir exists', Array.isArray(j.workshopDirs) && j.workshopDirs.length > 0, j)
 
 // 10. mpkg auto-import: dedicated export folder (NOT Desktop), synthetic PKGM0014 container
-const MPKG_TMP = join(tmpdir(), 'dsh-twp-mpkg-test')
-await mkdir(MPKG_TMP, { recursive: true })
 function buildPkg(filePath, files) {
   let dirLen = 0
   for (const f of files) dirLen += 4 + Buffer.byteLength(f.name) + 8
@@ -186,6 +196,12 @@ check('mpkg-only default (count==mpkgCount, all fromMpkg)', j.count === j.mpkgCo
 check('mpkg entry kind=video fromMpkg', mpkgEntry && mpkgEntry.kind === 'video' && mpkgEntry.fromMpkg === true, mpkgEntry)
 check('mpkg media served 200', mpkgEntry ? (await fetch(base + '/theme-wallpaper/file?path=' + encodeURIComponent(mpkgEntry.media))).status === 200 : false)
 check('no-video mpkg reported as skipped', Array.isArray(j.skipped) && j.skipped.some((s) => s.file === 'no_video.mpkg'), j.skipped)
+
+// 10f-1. GET file: missing file INSIDE an allowed root → 404.
+// MPKG_TMP is now a configured root (set as the export folder above), so the
+// 403 allow-list is passed and the route reports the genuine "not found".
+r = await fetch(base + '/theme-wallpaper/file?path=' + encodeURIComponent(join(MPKG_TMP, 'definitely-missing.mp4')))
+check('missing file inside root → 404', r.status === 404, { status: r.status })
 // 10d. mpkg-folder rejects an empty path
 r = await fetch(base + '/theme-wallpaper/mpkg-folder', {
   method: 'POST',
@@ -196,8 +212,6 @@ j = await r.json()
 check('mpkg-folder rejects empty path', r.status === 400 && j.ok === false, j)
 
 // 10e. mpkg-collect moves .mpkg from a source dir (Desktop in real use) into the export folder
-const COLLECT_SRC = join(tmpdir(), 'dsh-twp-collect-src')
-await mkdir(COLLECT_SRC, { recursive: true })
 buildPkg(join(COLLECT_SRC, '桌面来的.mpkg'), [
   { name: 'preview.jpg', data: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0]) },
   { name: 'project.json', data: Buffer.from('{}') },
