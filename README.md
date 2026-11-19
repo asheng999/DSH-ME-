@@ -64,13 +64,31 @@ theme-wallpaper/
 ## 数据与缓存
 
 - `state.json`：运行时配置（主题 / 壁纸 / 导出目录），**不进仓库**，缺失时自动用默认值。
-- `.mpkg-cache/<名字>/`：每个 mpkg 解出的 `wallpaper.mp4` + 预览图缓存，按 mtime 判新、重复扫描不重读大文件。
+- `.mpkg-cache/<名字>/`：每个 mpkg 解出的 `wallpaper.mp4` + 预览图缓存，按 mtime 判新、重复扫描不重读大文件。解包是**流式**的（`createReadStream` → `createWriteStream`），所以 2 GB 级别的导出包也不会吃满内存。
+
+## 安全模型
+
+宿主 `dsh-host-webserver` 不提供服务级鉴权，因此本插件自己约束请求面：
+
+| 路由 | 限制 |
+| --- | --- |
+| `GET /theme-wallpaper/file` | 只允许当前壁纸所在目录、mpkg 导出目录、mpkg 缓存在内的路径；白名单外一律 403 |
+| `GET /theme-wallpaper/dirs` | 只返回目录名与 `.mpkg` 文件名，**不返回任何文件内容** |
+| `POST /theme-wallpaper/mpkg-collect` | 只从桌面 / 下载目录移动 `.mpkg` |
+| 全部 POST | 请求体上限 1 MB |
+
+环境变量 `THEME_WALLPAPER_COLLECT_ROOTS`（分号分隔）可改写收集来源目录，仅供自包含测试使用。
+
+## 面板半透明的工作原理
+
+`--dsw-alias-bg-layer-*` 与 `--dsw-alias-bg-overlay` 通过宿主的 `ctx.theme.overrideTokens()` 下发，值为 `{ light, dark }` 成对。这样做的原因：宿主的 `ui-layout` 会把主题 token 写成 `<body>` 的 inline custom property，优先级高于样式表——任何插件一旦注册主题覆盖，样式表里写的同名变量就会失效。宿主未提供 `theme` 服务时，插件回退到纯样式表实现。
 
 ## 常见问题
 
 - **为什么有的 .mpkg 不显示？** 只有"发送到移动设备"的导出（内含渲染好的 `wallpaper.mp4`）才能转成动态壁纸。有些包（如裸场景包 `PKGM0020`，只有 preview.gif + 模型素材）没有渲染视频，会被自动跳过并**明确列出跳过原因**。
 - **导出目录设了但显示"未设置"？** 旧版本有"保存时清空目录"的 bug，已修复；如仍遇到请重启 DSH 应用。
 - **WE 导出为什么落在桌面？** 那是 WE 自身的行为，插件用「收桌面 .mpkg」一键帮你收进导出目录。
+- **装了很多壁纸，为什么只显示一部分？** 单个 WE 壁纸包内的素材数量有 40 条上限，超出的数量会在扫描结果里以 `truncated` 回报。
 
 ## 测试
 
