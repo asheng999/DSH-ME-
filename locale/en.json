@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Theme and wallpaper",
+    "description": "Gives the chat interface a macOS-style theme and a local wallpaper (still image, animated image, or video), with wallpaper dimming, translucent panels, and pause-when-unfocused. Also unpacks Wallpaper Engine export packages (.mpkg) into their high-resolution animated wallpapers. Find it under Settings -> Theme and wallpaper.",
+    "detail": "docs/DETAIL.md"
+  }
+}

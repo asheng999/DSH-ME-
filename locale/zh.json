@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "主题与壁纸",
+    "description": "给聊天界面换上 macOS 观感主题和本地壁纸（静态图 / 动图 / 视频），带壁纸暗化、面板半透明与失焦自动暂停。支持从 Wallpaper Engine 导出包（.mpkg）自动解出高清动态壁纸。设置入口：设置 → 主题与壁纸。",
+    "detail": "docs/DETAIL.md"
+  }
+}
