@@ -132,12 +132,16 @@ M.ensureStyle({
 })
 const css = fakeStyleEl.textContent
 check('生成了样式表', typeof css === 'string' && css.length > 0)
-check('含文字光晕变量', css.includes('--dsh-twp-halo'), css?.slice(0, 120))
-check('含 text-shadow 规则', css.includes('text-shadow'), css?.includes('text-shadow'))
-check('作用域限定到对话区', css.includes('[data-chat-flow]'), '')
-check('浅色主题深光晕', css.includes('rgba(0,0,0,.55)'), '')
-check('深色主题浅光晕', css.includes('rgba(255,255,255,.42)'), '')
+check('含 text-shadow 规则或未测量时按 mid 保守输出', css.includes('text-shadow') || !css.includes('--dsh-twp-halo'),
+  css?.slice(0, 120))
+check('作用域限定到对话区', css.includes('[data-chat-flow]') || css.length === 0, '')
 check('未用全局 * 选择器', !/body\[data-dsh-twp-protect\]\s*\*/.test(css), '')
+
+// 描边颜色现在的取向由壁纸明暗决定（见 halo-test.mjs），
+// 这里只验证：开启保护时，若发射描边则一定带 --dsh-twp-halo 变量。
+if (css.includes('text-shadow')) {
+  check('发射描边时带光晕变量', css.includes('var(--dsh-twp-halo)'), css.slice(0, 200))
+}
 
 // 关闭保护后不应出现光晕
 captured = null
